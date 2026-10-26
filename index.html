@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Products Manager — FastAPI + PostgreSQL</title>
+  <meta name="description" content="A full-stack product management dashboard built with FastAPI, PostgreSQL on AWS RDS, and a modern glassmorphism UI." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-base: #0b0f1a;
+      --bg-card: rgba(255,255,255,0.04);
+      --bg-card-hover: rgba(255,255,255,0.08);
+      --border: rgba(255,255,255,0.10);
+      --border-focus: rgba(99,179,237,0.6);
+      --accent: #63b3ed;
+      --accent-2: #9f7aea;
+      --accent-grad: linear-gradient(135deg, #63b3ed 0%, #9f7aea 100%);
+      --danger: #fc8181;
+      --success: #68d391;
+      --text-primary: #e2e8f0;
+      --text-muted: #718096;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+      --transition: all 0.25s cubic-bezier(.4,0,.2,1);
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(99,179,237,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 80%, rgba(159,122,234,0.12) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown .6s ease both;
+    }
+    .header .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(99,179,237,0.12);
+      border: 1px solid rgba(99,179,237,0.3);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 18px;
+    }
+    .header h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .header .stack-tags {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .stack-tag {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 12px;
+      font-weight: 500;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 32px;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+      text-align: center;
+      backdrop-filter: blur(12px);
+      transition: var(--transition);
+    }
+    .stat-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+    .stat-card .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 24px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-grad);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .card-title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
+    .card-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    input[type="text"], input[type="number"] {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 14px;
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: var(--transition);
+      width: 100%;
+    }
+    input::placeholder { color: var(--text-muted); opacity: .7; }
+    input:focus {
+      border-color: var(--border-focus);
+      background: rgba(99,179,237,0.06);
+      box-shadow: 0 0 0 3px rgba(99,179,237,0.12);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      padding: 11px 22px;
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary { background: var(--accent-grad); color: #0b0f1a; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,179,237,0.35); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,0.09); }
+    .btn-danger {
+      background: rgba(252,129,129,0.12);
+      border: 1px solid rgba(252,129,129,0.25);
+      color: var(--danger);
+      font-size: 13px;
+      padding: 7px 14px;
+    }
+    .btn-danger:hover { background: rgba(252,129,129,0.22); box-shadow: 0 4px 14px rgba(252,129,129,0.2); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .status-msg {
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      margin-top: 12px;
+      display: none;
+      animation: fadeIn .3s ease;
+    }
+    .status-msg.success { background: rgba(104,211,145,0.12); border: 1px solid rgba(104,211,145,0.3); color: var(--success); display: flex; align-items: center; gap: 8px; }
+    .status-msg.error   { background: rgba(252,129,129,0.12); border: 1px solid rgba(252,129,129,0.3); color: var(--danger);  display: flex; align-items: center; gap: 8px; }
+    .list-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .search-box { position: relative; flex: 1; min-width: 180px; }
+    .search-box input { padding-left: 36px; }
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 15px;
+      pointer-events: none;
+    }
+    #product-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+    .product-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      transition: var(--transition);
+      animation: fadeIn .4s ease both;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .product-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(99,179,237,0.25);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    .product-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .product-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      flex: 1;
+      line-height: 1.5;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+    }
+    .price-badge {
+      background: rgba(99,179,237,0.12);
+      border: 1px solid rgba(99,179,237,0.25);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .product-id { font-size: 11px; color: var(--text-muted); opacity: .6; }
+    .empty-state { text-align: center; padding: 60px 20px; grid-column: 1 / -1; color: var(--text-muted); }
+    .empty-icon { font-size: 48px; margin-bottom: 14px; opacity: .6; }
+    .empty-state p { font-size: 14px; line-height: 1.6; }
+    .loading { text-align: center; padding: 40px; grid-column: 1 / -1; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--text-muted);
+      font-size: 13px;
+      animation: fadeUp .6s .3s ease both;
+    }
+    .footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+    .footer a:hover { text-decoration: underline; }
+    @keyframes fadeDown  { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn    { from { opacity:0; transform:scale(.97);        } to { opacity:1; transform:scale(1);     } }
+    @keyframes spin      { to   { transform:rotate(360deg); } }
+    @media (max-width: 560px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr; }
+      #product-list { grid-template-columns: 1fr; }
+      .card { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="badge">⚡ Full Stack Project</div>
+      <h1>Products Manager</h1>
+      <p>A modern product management dashboard powered by FastAPI &amp; PostgreSQL on AWS RDS.</p>
+      <div class="stack-tags">
+        <span class="stack-tag">🐍 FastAPI</span>
+        <span class="stack-tag">🐘 PostgreSQL</span>
+        <span class="stack-tag">☁️ AWS RDS</span>
+        <span class="stack-tag">🚀 EC2</span>
+        <span class="stack-tag">🪣 S3</span>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">Total Products</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-avg">—</div>
+        <div class="stat-label">Avg. Price</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-status">🟢</div>
+        <div class="stat-label">API Status</div>
+      </div>
+    </div>
+    <div class="card" style="animation: fadeUp .6s .15s ease both;">
+      <div class="card-header">
+        <div class="card-icon">➕</div>
+        <div>
+          <div class="card-title">Add New Product</div>
+          <div class="card-subtitle">Fill in the details and hit add</div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="name">Product Name</label>
+          <input type="text" id="name" placeholder="e.g. iPhone 15 Pro" />
+        </div>
+        <div class="form-group">
+          <label for="price">Price (USD)</label>
+          <input type="number" id="price" placeholder="e.g. 999" min="0" step="0.01" />
+        </div>
+        <div class="form-group full">
+          <label for="description">Description</label>
+          <input type="text" id="description" placeholder="Short description of the product…" />
+        </div>
+      </div>
+      <button class="btn btn-primary" id="add-btn" onclick="addProduct()">
+        <span>➕</span> Add Product
+      </button>
+      <div class="status-msg" id="add-status"></div>
+    </div>
+    <div class="card" style="animation: fadeUp .6s .25s ease both;">
+      <div class="card-header">
+        <div class="card-icon">📦</div>
+        <div>
+          <div class="card-title">All Products</div>
+          <div class="card-subtitle">Live data from PostgreSQL on AWS RDS</div>
+        </div>
+      </div>
+      <div class="list-controls">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="Search products…" oninput="filterProducts()" />
+        </div>
+        <button class="btn btn-ghost" id="refresh-btn" onclick="getProducts()">
+          <span id="refresh-icon">🔄</span> Refresh
+        </button>
+      </div>
+      <div id="product-list">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p style="color:var(--text-muted);font-size:13px;">Loading products…</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <p>Built with ❤️ using <strong>FastAPI</strong>, <strong>PostgreSQL</strong> &amp; <strong>AWS</strong></p>
+      <p style="margin-top:6px; opacity:.6;">
+        <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noopener">📄 API Docs (Swagger)</a>
+        &nbsp;·&nbsp;
+        <a href="http://127.0.0.1:8000/redoc" target="_blank" rel="noopener">📘 ReDoc</a>
+      </p>
+    </div>
+  </div>
+  <script>
+    const API = "http://127.0.0.1:8000";
+    let allProducts = [];
+    window.onload = getProducts;
+
+    async function getProducts() {
+      const refreshIcon = document.getElementById("refresh-icon");
+      const list = document.getElementById("product-list");
+      refreshIcon.style.animation = "spin .6s linear infinite";
+      list.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color:var(--text-muted);font-size:13px;">Loading…</p></div>';
+      try {
+        const res = await fetch(API + "/products");
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        allProducts = await res.json();
+        updateStats(true);
+        renderProducts(allProducts);
+      } catch (err) {
+        allProducts = [];
+        updateStats(false);
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p style="color:var(--danger);font-weight:600;">Could not connect to API</p><p style="margin-top:6px;">Make sure FastAPI is running on <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">' + API + '</code></p></div>';
+      } finally {
+        refreshIcon.style.animation = "";
+      }
+    }
+
+    function renderProducts(products) {
+      const list = document.getElementById("product-list");
+      if (products.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><p style="font-weight:600;">No products found</p><p style="margin-top:6px;">Add your first product using the form above.</p></div>';
+        return;
+      }
+      list.innerHTML = products.map(function(p) {
+        return '<div class="product-card" id="product-' + p.id + '">' +
+          '<div class="product-name" title="' + escHtml(p.name) + '">' + escHtml(p.name) + '</div>' +
+          '<div class="product-desc">' + escHtml(p.description || 'No description provided.') + '</div>' +
+          '<div class="product-footer">' +
+            '<span class="price-badge">$' + Number(p.price).toFixed(2) + '</span>' +
+            '<button class="btn btn-danger" onclick="deleteProduct(' + p.id + ')" id="del-' + p.id + '">🗑 Delete</button>' +
+          '</div>' +
+          '<div class="product-id"># ID: ' + p.id + '</div>' +
+        '</div>';
+      }).join("");
+    }
+
+    function filterProducts() {
+      var q = document.getElementById("search-input").value.toLowerCase().trim();
+      var filtered = q
+        ? allProducts.filter(function(p) {
+            return p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q);
+          })
+        : allProducts;
+      renderProducts(filtered);
+    }
+
+    async function addProduct() {
+      var nameEl  = document.getElementById("name");
+      var descEl  = document.getElementById("description");
+      var priceEl = document.getElementById("price");
+      var addBtn  = document.getElementById("add-btn");
+      var name  = nameEl.value.trim();
+      var description = descEl.value.trim();
+      var price = parseFloat(priceEl.value);
+      if (!name || isNaN(price) || price < 0) {
+        showStatus("add-status", "error", "⚠️ Product name and a valid price are required.");
+        return;
+      }
+      addBtn.disabled = true;
+      addBtn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px;"></span> Adding…';
+      try {
+        var res = await fetch(API + "/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name, description: description, price: price })
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var data = await res.json();
+        showStatus("add-status", "success", "✅ \"" + data.name + "\" added successfully!");
+        nameEl.value = ""; descEl.value = ""; priceEl.value = "";
+        await getProducts();
+      } catch (err) {
+        showStatus("add-status", "error", "❌ Failed to add product. Check the API.");
+      } finally {
+        addBtn.disabled = false;
+        addBtn.innerHTML = "<span>➕</span> Add Product";
+      }
+    }
+
+    async function deleteProduct(id) {
+      var btn = document.getElementById("del-" + id);
+      if (!btn) return;
+      btn.disabled = true;
+      btn.innerHTML = "⏳";
+      try {
+        var res = await fetch(API + "/products/" + id, { method: "DELETE" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        var card = document.getElementById("product-" + id);
+        if (card) {
+          card.style.transition = "opacity .3s, transform .3s";
+          card.style.opacity = "0";
+          card.style.transform = "scale(.95)";
+          setTimeout(function() { getProducts(); }, 300);
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = "🗑 Delete";
+        alert("Failed to delete product.");
+      }
+    }
+
+    function updateStats(apiOnline) {
+      document.getElementById("stat-total").textContent = allProducts.length;
+      document.getElementById("stat-status").textContent = apiOnline ? "🟢" : "🔴";
+      if (allProducts.length > 0) {
+        var avg = allProducts.reduce(function(s,p){ return s + Number(p.price); }, 0) / allProducts.length;
+        document.getElementById("stat-avg").textContent = "$" + avg.toFixed(0);
+      } else {
+        document.getElementById("stat-avg").textContent = "—";
+      }
+    }
+
+    function showStatus(id, type, msg) {
+      var el = document.getElementById(id);
+      el.className = "status-msg " + type;
+      el.innerHTML = msg;
+      clearTimeout(el._timer);
+      el._timer = setTimeout(function() {
+        el.style.opacity = "0";
+        el.style.transition = "opacity .4s";
+        setTimeout(function() { el.className = "status-msg"; el.style.opacity = ""; el.style.transition = ""; }, 400);
+      }, 4000);
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>
